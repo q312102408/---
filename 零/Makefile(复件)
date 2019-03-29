@@ -1,0 +1,27 @@
+OBJ=boot.img
+CC=clang  -w 
+
+all:$(OBJ) 
+
+bootsect: boot.asm
+	nasm -f bin -o $@ $^ ;
+kernel:main.o  第一屏d.o 物理内存.o str.o j基础类型.o io_gdt.o idt.o
+	ld --oformat  binary -e _start -Ttext 1000 $^ -o $@
+floppy:bootsect kernel
+	cat bootsect kernel > floppy
+.o:.c
+	$(CC) -c $^
+idt.o: idt.asm
+	nasm  -f elf   -o $@ $^ ;	
+clean:
+	rm -f $(OBJ) *.o	*.img floppy kernel bootsect
+	
+boot.img:floppy
+	dd if=$^ of=$@ 
+boot.iso:bootsect kernel
+	mkisofs  -o $@  -b $^ 	
+#sudo apt install qemu-system-x86
+run:boot.img
+	qemu-system-i386 -m 64 -fda boot.img -boot a
+rund:boot.img
+	qemu-system-i386 -m 64 -S -s -fda boot.img -boot a
